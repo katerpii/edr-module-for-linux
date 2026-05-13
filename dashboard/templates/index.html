@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EDR Dashboard</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <nav class="navbar px-3 border-bottom border-secondary">
+    <span class="navbar-brand fw-bold">
+      <span class="text-danger">⬤</span> EDR
+    </span>
+    <div class="d-flex gap-4 text-secondary small">
+      <span>Active Procs: <strong id="stat-procs" class="text-info">–</strong></span>
+      <span>Events: <strong id="stat-events" class="text-info">–</strong></span>
+      <span>Alerts: <strong id="stat-alerts" class="text-danger">–</strong></span>
+    </div>
+    <span id="status-dot" class="small text-secondary">● connecting…</span>
+  </nav>
+
+  <!-- Layout -->
+  <div class="d-flex" id="main-layout">
+
+    <!-- Alerts sidebar -->
+    <div id="alert-sidebar" class="border-end border-secondary overflow-auto flex-shrink-0">
+      <div class="px-3 py-2 border-bottom border-secondary sidebar-header">
+        ALERTS <span id="alert-count" class="badge bg-danger ms-1">0</span>
+      </div>
+      <div id="alert-list"></div>
+    </div>
+
+    <!-- Content -->
+    <div class="flex-grow-1 d-flex flex-column overflow-hidden">
+
+      <!-- Tabs -->
+      <ul class="nav nav-tabs px-3 pt-2 border-bottom border-secondary flex-shrink-0">
+        <li class="nav-item">
+          <a class="nav-link active" data-tab="graph"     href="#">Graph</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link"        data-tab="events"    href="#">Events</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link"        data-tab="processes" href="#">Processes</a>
+        </li>
+      </ul>
+
+      <!-- Tab panes -->
+      <div class="flex-grow-1 overflow-hidden position-relative">
+
+        <!-- Graph -->
+        <div id="tab-graph" class="tab-pane h-100 position-relative">
+          <div id="cy" class="h-100 w-100"></div>
+          <div id="graph-empty" class="position-absolute top-50 start-50 translate-middle text-secondary text-center d-none">
+            <div style="font-size:2rem">⬡</div>
+            <div>No process data yet.<br>Run the agent to start collecting.</div>
+          </div>
+
+          <!-- Node detail panel -->
+          <div id="node-detail" class="position-absolute top-0 end-0 h-100 overflow-auto detail-panel d-none">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <span class="fw-bold text-info">Process Detail</span>
+              <button class="btn btn-sm btn-outline-secondary" onclick="closeDetail()">✕</button>
+            </div>
+            <div id="node-detail-content"></div>
+          </div>
+        </div>
+
+        <!-- Events -->
+        <div id="tab-events" class="tab-pane h-100 overflow-auto d-none p-3">
+          <table class="table table-dark table-sm table-hover mb-0">
+            <thead class="sticky-top bg-dark">
+              <tr>
+                <th>Time</th><th>Type</th><th>PID</th><th>Comm</th><th>Path / Dest</th><th>Cmdline</th>
+              </tr>
+            </thead>
+            <tbody id="events-tbody"></tbody>
+          </table>
+        </div>
+
+        <!-- Processes -->
+        <div id="tab-processes" class="tab-pane h-100 overflow-auto d-none p-3">
+          <table class="table table-dark table-sm table-hover mb-0">
+            <thead class="sticky-top bg-dark">
+              <tr>
+                <th>PID</th><th>PPID</th><th>Comm</th><th>Exe</th><th>UID</th><th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="processes-tbody"></tbody>
+          </table>
+        </div>
+
+      </div><!-- /tab panes -->
+    </div><!-- /content -->
+  </div><!-- /layout -->
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/cytoscape@3.27.0/dist/cytoscape.min.js"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>
