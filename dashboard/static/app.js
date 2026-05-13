@@ -163,6 +163,10 @@ async function showNodeDetail(data) {
     <div class="detail-row"><span class="detail-key">Exe</span>    <span class="detail-val" title="${data.exe || ''}">${data.exe || '–'}</span></div>
     <div class="detail-row"><span class="detail-key">Start</span>  <span class="detail-val">${ts}</span></div>
     <div class="detail-row"><span class="detail-key">Status</span> <span class="detail-val">${data.active ? '<span class="text-success">active</span>' : '<span class="text-secondary">exited</span>'}</span></div>
+    <button class="btn btn-sm btn-outline-info w-100 mt-3"
+            onclick="showAncestry(${data.pid}, ${data.start_ts})">
+      ↑ Show Ancestry
+    </button>
     <div class="mt-3 mb-2" style="color:#8b949e;font-size:0.7rem;font-weight:700;letter-spacing:.08em">RECENT EVENTS</div>
     <div id="proc-events-list"><span class="text-secondary">loading…</span></div>
   `;
@@ -184,6 +188,54 @@ async function showNodeDetail(data) {
       ${e.cmd ? `<div class="mt-1 text-secondary">${e.cmd.substring(0, 70)}</div>` : ''}
     </div>
   `).join('');
+}
+
+// ── Ancestry modal ───────────────────────────────────────────────
+let ancestryModal = null;
+
+async function showAncestry(pid, start_ts) {
+  const body = document.getElementById('ancestry-body');
+  body.innerHTML = '<div class="text-secondary text-center">loading…</div>';
+
+  if (!ancestryModal)
+    ancestryModal = new bootstrap.Modal(document.getElementById('ancestry-modal'));
+  ancestryModal.show();
+
+  const chain = await apiFetch(`/api/graph/ancestry/${pid}/${start_ts}`);
+  if (!chain || !chain.length) {
+    body.innerHTML = '<div class="text-secondary text-center">No ancestry data</div>';
+    return;
+  }
+
+  // alerted pids for highlighting
+  const alertedPids = new Set(
+    (await apiFetch('/api/alerts') || []).map(a => `${a.pid}_${a.start_ts}`)
+  );
+
+  const items = chain.map((p, i) => {
+    const isRoot   = i === 0;
+    const isTarget = i === chain.length - 1;
+    const isAlerted = alertedPids.has(`${p.pid}_${p.start_ts}`);
+    const cls = isAlerted ? 'anc-alerted' : isTarget ? 'anc-target' : isRoot ? 'anc-root' : '';
+    const label = isRoot ? 'root' : isTarget ? 'target' : '';
+
+    return `
+      ${i > 0 ? `
+        <div class="anc-connector">
+          <div class="line"></div>
+          <div class="arrow"></div>
+        </div>` : ''}
+      <div class="anc-card ${cls}"
+           onclick="focusProcess(${p.pid}, ${p.start_ts}); ancestryModal.hide()">
+        <span class="anc-depth">${label || `d-${p.depth}`}</span>
+        <div class="anc-comm">${p.comm || '?'}</div>
+        <div class="anc-exe">${p.exe || '–'}</div>
+        <div class="anc-pid">pid ${p.pid}</div>
+      </div>
+    `;
+  }).join('');
+
+  body.innerHTML = `<div class="anc-chain">${items}</div>`;
 }
 
 function closeDetail() {

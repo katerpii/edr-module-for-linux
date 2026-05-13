@@ -98,6 +98,23 @@
     </div><!-- /content -->
   </div><!-- /layout -->
 
+  <!-- Ancestry modal -->
+  <div class="modal fade" id="ancestry-modal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content" style="background:#010409; border:1px solid #30363d;">
+        <div class="modal-header border-secondary py-2">
+          <span class="modal-title fw-bold text-info" style="font-size:.9rem">
+            ↑ Process Ancestry
+          </span>
+          <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4" id="ancestry-body">
+          <div class="text-secondary text-center">loading…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/cytoscape@3.27.0/dist/cytoscape.min.js"></script>
   <script src="/static/app.js"></script>

@@ -137,3 +137,85 @@ body {
 
 .mono { font-family: monospace; }
 .truncate { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ── Ancestry chain ──────────────────────────────────────────── */
+.anc-chain {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+.anc-card {
+  width: 100%;
+  max-width: 340px;
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  position: relative;
+}
+
+.anc-card:hover { border-color: #58a6ff; background: #161b22; }
+
+.anc-card.anc-root  { border-color: #3fb950; }
+.anc-card.anc-target {
+  border-color: #58a6ff;
+  background: #0c1a2e;
+  box-shadow: 0 0 0 3px rgba(88,166,255,.15);
+}
+.anc-card.anc-alerted { border-color: #f85149; background: #1a0d0d; }
+
+.anc-depth {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: 0.65rem;
+  color: #484f58;
+}
+
+.anc-comm {
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: #e6edf3;
+}
+
+.anc-exe {
+  font-family: monospace;
+  font-size: 0.72rem;
+  color: #8b949e;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 2px;
+}
+
+.anc-pid {
+  font-size: 0.7rem;
+  color: #484f58;
+  margin-top: 4px;
+}
+
+.anc-connector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  padding: 2px 0;
+}
+
+.anc-connector .line {
+  width: 2px;
+  height: 14px;
+  background: #30363d;
+}
+
+.anc-connector .arrow {
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid #30363d;
+}
