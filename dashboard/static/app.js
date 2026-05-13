@@ -3,8 +3,9 @@
 const EVT = {1:'fork', 2:'exec', 3:'exit', 4:'file', 5:'net'};
 const SEV = {1:'INFO', 2:'WARN', 3:'HIGH', 4:'CRIT'};
 
-let cy        = null;
-let activeTab = 'graph';
+let cy          = null;
+let activeTab   = 'graph';
+let firstLayout = true;
 
 // ── Cytoscape init ───────────────────────────────────────────────
 function initCy() {
@@ -118,7 +119,10 @@ async function refreshGraph() {
   const toAdd = res.elements.filter(el => !existingIds.has(el.data.id));
   if (toAdd.length) {
     cy.add(toAdd);
-    runLayout();
+    // 디테일 패널이 열려있으면 layout 자체를 skip — 보던 위치 그대로 유지
+    if (document.getElementById('node-detail').classList.contains('d-none')) {
+      runLayout();
+    }
   }
 
   // update changed properties (active, alerted)
@@ -142,7 +146,9 @@ function runLayout() {
     padding:        40,
     spacingFactor:  1.5,
     avoidOverlap:   true,
+    fit:            firstLayout,  // 첫 로드만 전체 fit, 이후엔 zoom/pan 유지
   }).run();
+  firstLayout = false;
 }
 
 // ── Node detail ──────────────────────────────────────────────────
