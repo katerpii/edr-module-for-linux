@@ -114,25 +114,31 @@ int BPF_PROG(handle_exit, struct task_struct *t)
 }
 
 
-SEC("tracepoint/sock/inet_sock_set_state")
-int BPF_PROG(tp_inet_sock_set_state, struct inet_sock_state_args *args)
+SEC("tp_btf/inet_sock_set_state")
+int BPF_PROG(tp_inet_sock_set_state, struct sock *sk, int oldstate, int newstate)
 {
-    if (args->newstate != TCP_SYN_SENT) return 0;
-    if (args->protocol != IPPROTO_TCP) return 0;
-    
+    if (newstate != TCP_SYN_SENT) return 0;
+
+    __u8 proto;
+    BPF_CORE_READ_INTO(&proto, sk, sk_protocol);
+    if (proto != IPPROTO_TCP) return 0;
+
     struct event *e = bpf_ringbuf_reserve(&events, sizeof(*e), 0);
     if (!e) return 0;
-    e->type = evt_net;
-    e->pid = bpf_get_current_pid_tgid() >> 32;
+    e->type  = evt_net;
+    e->pid   = bpf_get_current_pid_tgid() >> 32;
     e->ts_ns = bpf_ktime_get_ns();
     bpf_get_current_comm(&e->comm, sizeof(e->comm));
-
-    // set network field
-    __builtin_memcpy(&e->saddr, args->saddr, 4);
-    __builtin_memcpy(&e->daddr, args->daddr, 4); 
-    e->sport = args->sport;
-    e->dport = args->dport;
     e->proto = IPPROTO_TCP;
+
+    BPF_CORE_READ_INTO(&e->saddr, sk, __sk_common.skc_rcv_saddr);
+    BPF_CORE_READ_INTO(&e->daddr, sk, __sk_common.skc_daddr);
+
+    __u16 sport, dport;
+    BPF_CORE_READ_INTO(&sport, sk, __sk_common.skc_num);
+    BPF_CORE_READ_INTO(&dport, sk, __sk_common.skc_dport);
+    e->sport = sport;
+    e->dport = bpf_ntohs(dport);
 
     bpf_ringbuf_submit(e, 0);
     return 0;
