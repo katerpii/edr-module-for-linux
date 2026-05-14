@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
 #include <sqlite3.h>
 #include "db.h"
 #include "graph.h"
@@ -75,13 +77,18 @@ int graph_insert_edge(const struct event *e, int64_t src_start, int64_t event_id
                     e->fn, event_id);
         break;
 
-    case evt_net:
-        /* fn 필드에 "ip:port" 형식으로 저장 (probe 구현 시 약속) */
-        insert_edge(e->ts_ns, "connect",
+    case evt_net: {
+        char artifact[64];
+        snprintf(artifact, sizeof(artifact), "%s:%u/%s",
+                 inet_ntoa((struct in_addr){ .s_addr = e->daddr }),
+                 e->dport,
+                 e->proto == IPPROTO_TCP ? "tcp" : "udp");
+        insert_edge(e->ts_ns, "net_connect",
                     e->pid, src_start,
                     -1, -1,
-                    e->fn, event_id);
+                    artifact, event_id);
         break;
+    }
 
     default:
         break;

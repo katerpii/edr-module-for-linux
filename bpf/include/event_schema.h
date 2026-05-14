@@ -23,6 +23,13 @@ struct event {
     char p_comm[COMM_LEN];
     char fn[MAX_FN];
     char cmd[MAX_CMD];
+
+    /* Network event field*/
+    unsigned int       saddr;   
+    unsigned int       daddr;
+    unsigned short     sport;
+    unsigned short     dport;
+    unsigned char      proto;   /* IPPROTO_TCP=6, IPPROTO_UDP=17 */
 };
 
 #endif

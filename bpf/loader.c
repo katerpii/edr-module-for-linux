@@ -3,8 +3,11 @@
 #include <unistd.h>
 #include <bpf/bpf.h>
 #include <bpf/libbpf.h>
+#include <arpa/inet.h>
+
 
 #include "include/event_schema.h"
+#include "include/sock_state.h"
 #include "sensor.skel.h"
 #include "../db/db.h"
 #include "../db/process_db.h"
@@ -17,6 +20,9 @@
 static volatile int exiting = 0;
 static void sig_handler(int sig) { exiting = 1; }
 
+static void handle_dns(const struct event *e);
+static void handle_net_event(const struct event *e);
+
 static int handle_event(void *ctx, void *data, size_t len)
 {
     (void)ctx;
@@ -26,11 +32,50 @@ static int handle_event(void *ctx, void *data, size_t len)
         return 0;
     }
 
+    if (e->type == evt_net) { handle_net_event(e); return 0; }
+
     int64_t start_ts = process_db_upsert(e);
     int64_t ev_id    = event_log_insert(e, start_ts);
     graph_insert_edge(e, start_ts, ev_id);
     rule_runner_evaluate(e, start_ts, ev_id);
     return 0;
+}
+
+static void handle_net_event(const struct event *e)
+{
+    if (e->dport == 53 && e->proto == IPPROTO_UDP) {
+        handle_dns(e);
+        return;
+    }
+
+    char saddr[INET_ADDRSTRLEN], daddr[INET_ADDRSTRLEN];
+    inet_ntop(AF_INET, &e->saddr, saddr, sizeof(saddr));
+    inet_ntop(AF_INET, &e->daddr, daddr, sizeof(daddr));
+
+    printf("[NET] pid=%-6u comm=%-16s %s:%u -> %s:%u proto=%s\n",
+           e->pid, e->comm,
+           saddr, e->sport,
+           daddr, e->dport,
+           e->proto == IPPROTO_TCP ? "TCP" : "UDP");
+
+    int64_t start_ts = process_db_upsert(e);
+    int64_t ev_id    = event_log_insert(e, start_ts);
+    graph_insert_edge(e, start_ts, ev_id);
+    rule_runner_evaluate(e, start_ts, ev_id);
+}
+
+static void handle_dns(const struct event *e)
+{
+    char daddr[INET_ADDRSTRLEN];
+    inet_ntop(AF_INET, &e->daddr, daddr, sizeof(daddr));
+
+    printf("[DNS] pid=%-6u comm=%-16s -> %s:53\n",
+           e->pid, e->comm, daddr);
+
+    int64_t start_ts = process_db_upsert(e);
+    int64_t ev_id    = event_log_insert(e, start_ts);
+    graph_insert_edge(e, start_ts, ev_id);
+    rule_runner_evaluate(e, start_ts, ev_id);
 }
 
 int main(void)

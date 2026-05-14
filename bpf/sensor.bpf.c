@@ -2,7 +2,13 @@
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_tracing.h>
 #include <bpf/bpf_core_read.h>
+#include <bpf/bpf_endian.h>
 #include "include/event_schema.h"
+#include "include/sock_state.h"
+
+#ifndef TCP_SYN_SENT
+#define TCP_SYN_SENT 2
+#endif
 
 char LICENSE[] SEC("license") = "GPL";
 
@@ -84,8 +90,7 @@ int BPF_PROG(handle_exec,
             if (e->cmd[i] == '\0') e->cmd[i] = ' ';
         }
     }
-    bpf_printk("exec pid=%u fn_ret=%s cmd_ret=%s len=%u arg_start=%lx arg_end=%lx\n",
-           e->pid, e->fn, e->cmd, len, arg_start, arg_end);
+    bpf_printk("exec pid=%u fn=%s cmd=%s\n", e->pid, e->fn, e->cmd);
     bpf_ringbuf_submit(e, 0);
     return 0;
 }
@@ -106,4 +111,54 @@ int BPF_PROG(handle_exit, struct task_struct *t)
 
     bpf_ringbuf_submit(e, 0);
     return 0;   
+}
+
+
+SEC("tracepoint/sock/inet_sock_set_state")
+int BPF_PROG(tp_inet_sock_set_state, struct inet_sock_state_args *args)
+{
+    if (args->newstate != TCP_SYN_SENT) return 0;
+    if (args->protocol != IPPROTO_TCP) return 0;
+    
+    struct event *e = bpf_ringbuf_reserve(&events, sizeof(*e), 0);
+    if (!e) return 0;
+    e->type = evt_net;
+    e->pid = bpf_get_current_pid_tgid() >> 32;
+    e->ts_ns = bpf_ktime_get_ns();
+    bpf_get_current_comm(&e->comm, sizeof(e->comm));
+
+    // set network field
+    __builtin_memcpy(&e->saddr, args->saddr, 4);
+    __builtin_memcpy(&e->daddr, args->daddr, 4); 
+    e->sport = args->sport;
+    e->dport = args->dport;
+    e->proto = IPPROTO_TCP;
+
+    bpf_ringbuf_submit(e, 0);
+    return 0;
+}
+
+SEC("kprobe/udp_sendmsg")
+int BPF_KPROBE(udp_sendmsg, struct sock *sk, 
+                          struct msghdr *msg,
+                          size_t len)
+{
+    struct event *e = bpf_ringbuf_reserve(&events, sizeof(*e), 0);
+    if (!e) return 0;
+    e->type = evt_net;
+    e->pid = bpf_get_current_pid_tgid() >> 32;
+    e->ts_ns = bpf_ktime_get_ns();
+    bpf_get_current_comm(&e->comm, sizeof(e->comm));
+    e->proto = IPPROTO_UDP;
+
+    __u32 daddr = 0;
+    __u16 dport = 0;
+    BPF_CORE_READ_INTO(&daddr, sk, __sk_common.skc_daddr);
+    BPF_CORE_READ_INTO(&dport, sk, __sk_common.skc_dport);
+
+    e->daddr = daddr;
+    e->dport = bpf_ntohs(dport);
+
+    bpf_ringbuf_submit(e, 0);
+    return 0;
 }
