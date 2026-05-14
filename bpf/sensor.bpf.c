@@ -162,6 +162,18 @@ int BPF_KPROBE(udp_sendmsg, struct sock *sk,
     BPF_CORE_READ_INTO(&daddr, sk, __sk_common.skc_daddr);
     BPF_CORE_READ_INTO(&dport, sk, __sk_common.skc_dport);
 
+    if (daddr == 0) {
+        /* unconnected UDP: 목적지는 msg->msg_name에 있음 */
+        void *msg_name = NULL;
+        BPF_CORE_READ_INTO(&msg_name, msg, msg_name);
+        if (msg_name) {
+            struct sockaddr_in sin = {};
+            bpf_probe_read_kernel(&sin, sizeof(sin), msg_name);
+            daddr = sin.sin_addr.s_addr;
+            dport = sin.sin_port;
+        }
+    }
+
     e->daddr = daddr;
     e->dport = bpf_ntohs(dport);
 

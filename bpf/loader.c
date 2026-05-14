@@ -52,7 +52,7 @@ static void handle_net_event(const struct event *e)
     inet_ntop(AF_INET, &e->saddr, saddr, sizeof(saddr));
     inet_ntop(AF_INET, &e->daddr, daddr, sizeof(daddr));
 
-    printf("[NET] pid=%-6u comm=%-16s %s:%u -> %s:%u proto=%s\n",
+    printf("[NET] pid=%-6u comm=%-20s %s:%u -> %s:%u proto=%s\n",
            e->pid, e->comm,
            saddr, e->sport,
            daddr, e->dport,
@@ -69,7 +69,7 @@ static void handle_dns(const struct event *e)
     char daddr[INET_ADDRSTRLEN];
     inet_ntop(AF_INET, &e->daddr, daddr, sizeof(daddr));
 
-    printf("[DNS] pid=%-6u comm=%-16s -> %s:53\n",
+    printf("[DNS] pid=%-6u comm=%-20s -> %s:53\n",
            e->pid, e->comm, daddr);
 
     int64_t start_ts = process_db_upsert(e);

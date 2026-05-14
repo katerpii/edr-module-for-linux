@@ -1,7 +1,7 @@
 #ifndef EVENT_SCHEMA_H
 #define EVENT_SCHEMA_H
 
-#define COMM_LEN 16
+#define COMM_LEN 32
 #define MAX_FN 256
 #define MAX_CMD 256
 
